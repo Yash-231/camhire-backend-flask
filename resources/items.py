@@ -30,7 +30,7 @@ class Item(Resource):
             item = ItemModel(name,**data)
             try:
                 item.save_to_db()
-            except():
+            except:
                 return {"message":"error occured in database"}, 500
             return item.json(), 201
     @jwt_required()
@@ -49,7 +49,7 @@ class Item(Resource):
             item = ItemModel(name, **data)
         try:
             item.save_to_db()
-        except():
+        except:
             return {"message": "error occured in database"}, 500
         return item.json(), 201
 class ItemList(Resource):

@@ -32,7 +32,7 @@ class Photographers(Resource):
             photographer = PhotographerModel(name,**data)
             try:
                 photographer.save_to_db()
-            except():
+            except:
                 return {"message":"error occured in database"}, 500
             return photographer.json(), 201
     @jwt_required()
