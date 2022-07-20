@@ -33,12 +33,14 @@ class Item(Resource):
             except:
                 return {"message":"error occured in database"}, 500
             return item.json(), 201
+            
     @jwt_required()
     def delete(self,name):
         item = ItemModel.find_by_name(name)
         if item:
             item.delete_from_db()
         return {'message':"Item Deleted"}
+
     def put(self,name):
         item = ItemModel.find_by_name(name)
         data = Item.parser.parse_args()

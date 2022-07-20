@@ -6,20 +6,22 @@ class PhotographerModel(db.Model):
     name = db.Column(db.String(80))
     description = db.Column(db.String)
     speciality = db.Column(db.String)
-
-    def __init__(self,name,description,speciality):
+    def __init__(self, name, description, speciality):
         self.name = name
         self.description = description
         self.speciality = speciality
+
     def json(self):
-        return {"name":self.name,"description":self.description,"speciality":self.speciality}
+        return {"name":self.name, "description":self.description, "speciality":self.speciality}
+
     @classmethod
-    def find_by_name(cls,name):
-        return cls.query.filter_by(name= name).first()
+    def find_by_name(cls, name):
+        return cls.query.filter_by(name=name).first()
 
     def save_to_db(self):
-            db.session.add(self)
-            db.session.commit()
+        db.session.add(self)
+        db.session.commit()
+
     def delete_from_db(self):
-            db.session.delete(self)
-            db.session.commit()
+        db.session.delete(self)
+        db.session.commit()
