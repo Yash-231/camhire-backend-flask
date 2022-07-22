@@ -7,22 +7,25 @@ from models.photographer import PhotographerModel
 
 class Photographers(Resource):
     parser = reqparse.RequestParser()
-    parser.add_argument('speciality', type=str, required=True, help="this is required field")
+    parser.add_argument('name', type=str, required=True, help="this is required field")
+    parser.add_argument('img', type=str, required=True, help="this is required field")
+    #parser.add_argument('codeword', type=str, required=True, help="this is required field")
     parser.add_argument('description', type=str, required=True, help="this is required field")
+    parser.add_argument('quotation', type=str, required=True, help="this is required field")
 
-    def get(self, name):
-        photographer = PhotographerModel.find_by_name(name)
+    def get(self, codeword):
+        photographer = PhotographerModel.find_by_codeword(codeword)
         if photographer:
             return photographer.json()
         return {"ITEM":"Does not exist"}, 404
 
-    def post(self, name):
-        photographer = PhotographerModel.find_by_name(name)
+    def post(self, codeword):
+        photographer = PhotographerModel.find_by_codeword(codeword)
         if photographer:
-            return {name:"Already exists"}
+            return {codeword:"Already exists"}
         else:
             data = Photographers.parser.parse_args()
-            photographer = PhotographerModel(name, **data)
+            photographer = PhotographerModel(data)
             try:
                 photographer.save_to_db()
             except:
@@ -30,19 +33,19 @@ class Photographers(Resource):
             return photographer.json(), 201
 
     @jwt_required()
-    def delete(self, name):
-        photographer = PhotographerModel.find_by_name(name)
+    def delete(self, codeword):
+        photographer = PhotographerModel.find_by_codeword(codeword)
         if photographer:
             photographer.delete_from_db()
         return {'message':"Item Deleted"}
 
-    def put(self, name):
-        photographer = PhotographerModel.find_by_name(name)
+    def put(self, codeword):
+        photographer = PhotographerModel.find_by_codeword(codeword)
         data = Photographers.parser.parse_args()
         if photographer:
-            photographer = PhotographerModel(name, **data)
+            photographer = PhotographerModel(data)
         else:
-            photographer.speciality = data['speciality']
+            photographer.description = data['description']
         photographer.save_to_db()
         return photographer.json()
 

@@ -17,6 +17,7 @@ DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
 app.config['SQlALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['data_of_photographers'] = DOWNLOAD_FOLDER
+app.config['images_of_photographers'] = "templates\\photographer_images"
 app.secret_key = "kuldeep"
 jwt = JWT(app, authenticate, identity)
 
@@ -31,8 +32,9 @@ api.add_resource(Item,'/item/<string:name>')
 api.add_resource(ItemList,'/items')
 api.add_resource(StoreList,'/stores')
 api.add_resource(Store,'/store/<string:name>')
-api.add_resource(Photographers,'/photographer/<string:name>')
+api.add_resource(Photographers,'/photographer/<codeword>')
 api.add_resource(PhotographerList,'/photographers')
+api.add_resource(UserRegister,'/register')
 
 @app.route("/get-pdf/<pdf_name>")
 def get_pdf(pdf_name):
@@ -41,6 +43,12 @@ def get_pdf(pdf_name):
     except:
         abort(404)
 
-api.add_resource(UserRegister,'/register')
+@app.route("/camhire")
+def show_photographer_images():
+    try:
+        return send_from_directory(app.config['images_of_photographers'], "erik-mclean-2Wv9VnwzeeI-unsplash.jpg", as_attachment=False)
+    except FileNotFoundError:
+        return abort(404)
+
 port = os.environ.get("PORT",5000)
 app.run(debug=False, host="0.0.0.0",port=port)
