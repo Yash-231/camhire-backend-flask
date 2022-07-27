@@ -3,22 +3,30 @@ from db import db
 class PhotographerModel(db.Model):
     __tablename__ = "photographers"
     id = db.Column(db.Integer, primary_key = True)
+    codeword = db.Column(db.String, unique=True)
     name = db.Column(db.String(80))
-    img = db.Column(db.String)
-    codeword = db.Column(db.String)
+    speciality = db.Column(db.String)
     description = db.Column(db.String)
-    #speciality = db.Column(db.String)
-    quotation = db.Column(db.String)
+    img = db.Column(db.String)
 
-    def __init__(self, name, img, codeword, description, quotation):
-        self.name = name
-        self.img = img
+    def __init__(self, codeword, name, speciality, description, img="default.jpg"):
         self.codeword = codeword
+        self.name = name
+        self.speciality = speciality
         self.description = description
-        self.quotation = quotation     
+        self.img = img
 
+    def allowed_image(filename):
+        if "." not in filename or filename=="":
+            return False
+        ext=filename.rsplit(".", 1)[1]
+        if ext.lower() in ['png', 'jpg', 'jpeg', 'gif']:
+            return ext.lower()
+        else:
+            return False
+        
     def json(self):
-        return {"name":self.name, "img":self.img, "codeword":self.codeword, "description":self.description, "quotation":self.quotation}
+        return {"id":self.id, "name":self.name, "codeword":self.codeword, "speciality":self.speciality, "description":self.description, "img":self.img}
 
     @classmethod
     def find_by_codeword(cls, codeword):

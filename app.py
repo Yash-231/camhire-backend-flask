@@ -2,6 +2,7 @@ import os
 from flask import Flask, send_from_directory, abort
 from flask_restful import Api
 from flask_jwt import JWT
+from resources.gallery import Gallery, GalleryList
 from resources.items import Item, ItemList
 from resources.photographers import Photographers, PhotographerList
 from resources.user import UserRegister
@@ -12,12 +13,12 @@ from db import db
 app = Flask(__name__)
 api = Api(app)
 
-DOWNLOAD_FOLDER = os.path.dirname(os.path.abspath(__file__)) + '/pdf/'
+DOWNLOAD_FOLDER = os.path.dirname(os.path.abspath(__file__)) + 'static/uploads/pdf/'
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
-app.config['SQlALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['data_of_photographers'] = DOWNLOAD_FOLDER
-app.config['images_of_photographers'] = "templates\\photographer_images"
+app.config['images_of_photographers'] = "static\\uploads\\img"
 app.secret_key = "kuldeep"
 jwt = JWT(app, authenticate, identity)
 
@@ -35,6 +36,8 @@ api.add_resource(Store,'/store/<string:name>')
 api.add_resource(Photographers,'/photographer/<codeword>')
 api.add_resource(PhotographerList,'/photographers')
 api.add_resource(UserRegister,'/register')
+api.add_resource(Gallery, '/gallery/<heading>')
+api.add_resource(GalleryList, '/gallery')
 
 @app.route("/get-pdf/<pdf_name>")
 def get_pdf(pdf_name):
@@ -43,12 +46,26 @@ def get_pdf(pdf_name):
     except:
         abort(404)
 
-@app.route("/camhire")
-def show_photographer_images():
+@app.route("/photographer/get-image/<img_name>")
+def photographer_images(img_name):
     try:
-        return send_from_directory(app.config['images_of_photographers'], "erik-mclean-2Wv9VnwzeeI-unsplash.jpg", as_attachment=False)
+        return send_from_directory("static\\uploads\\img", path=img_name, as_attachment=False)
+    except FileNotFoundError:
+        return abort(404)
+    
+@app.route("/gallery/get-image/<img_name>")
+def gallery_images(img_name):
+    try:
+        return send_from_directory("static\\gallery\\img", path=img_name, as_attachment=False)
+    except FileNotFoundError:
+        return abort(404)
+
+@app.route("/gallery/get-video/<video_name>")
+def gallery_videos(video_name):
+    try:
+        return send_from_directory("static\\gallery\\video", path=video_name, as_attachment=False)
     except FileNotFoundError:
         return abort(404)
 
 port = os.environ.get("PORT",5000)
-app.run(debug=False, host="0.0.0.0",port=port)
+app.run(debug=False, host="0.0.0.0", port=port)

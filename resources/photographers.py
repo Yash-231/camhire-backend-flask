@@ -1,17 +1,14 @@
-import sqlite3
-
+import os
+from flask import request
 from flask_restful import Resource, reqparse
 from flask_jwt import  jwt_required
-from flask import send_from_directory, abort
 from models.photographer import PhotographerModel
 
 class Photographers(Resource):
     parser = reqparse.RequestParser()
-    parser.add_argument('name', type=str, required=True, help="this is required field")
-    parser.add_argument('img', type=str, required=True, help="this is required field")
-    #parser.add_argument('codeword', type=str, required=True, help="this is required field")
-    parser.add_argument('description', type=str, required=True, help="this is required field")
-    parser.add_argument('quotation', type=str, required=True, help="this is required field")
+    parser.add_argument('name', type=str, required=True, help="this is required field", location='form')
+    parser.add_argument('speciality', type=str, required=True, help="this is required field", location='form')
+    parser.add_argument('description', type=str, required=True, help="this is required field", location='form')
 
     def get(self, codeword):
         photographer = PhotographerModel.find_by_codeword(codeword)
@@ -22,20 +19,29 @@ class Photographers(Resource):
     def post(self, codeword):
         photographer = PhotographerModel.find_by_codeword(codeword)
         if photographer:
-            return {codeword:"Already exists"}
+            return {"codeword":"Already exists"}
         else:
             data = Photographers.parser.parse_args()
-            photographer = PhotographerModel(data)
+            if request.files:
+                img = request.files['img']
+                if img and (not PhotographerModel.allowed_image(img.filename)==False):
+                    data['img']=".".join([codeword, PhotographerModel.allowed_image(img.filename)])
+                    img.save("static\\uploads\\img\\"+data['img'])
+                else:
+                    return {"Error":"Filename is not allowed"}
+            photographer = PhotographerModel(codeword, **data)
             try:
                 photographer.save_to_db()
             except:
                 return {"message":"error occured in database"}, 500
-            return photographer.json(), 201
+            return photographer.json()
 
     @jwt_required()
     def delete(self, codeword):
         photographer = PhotographerModel.find_by_codeword(codeword)
         if photographer:
+            if photographer.img != 'default.jpg':
+                os.remove("static\\uploads\\img\\"+photographer.img)
             photographer.delete_from_db()
         return {'message':"Item Deleted"}
 
@@ -43,13 +49,38 @@ class Photographers(Resource):
         photographer = PhotographerModel.find_by_codeword(codeword)
         data = Photographers.parser.parse_args()
         if photographer:
-            photographer = PhotographerModel(data)
-        else:
+            if request.files:
+                img = request.files['img']
+                if img and (not PhotographerModel.allowed_image(img.filename)==False):
+                    if photographer.img != 'default.jpg':
+                        os.remove("static\\uploads\\img\\"+photographer.img)
+                    photographer.img=".".join([codeword, PhotographerModel.allowed_image(img.filename)])
+                    img.save("static\\uploads\\img\\"+photographer.img)
+                else:
+                    return {"Error":"Filename is not allowed"}
+            photographer.name  = data['name']
+            photographer.speciality = data['speciality']
             photographer.description = data['description']
-        photographer.save_to_db()
+        else:
+            if request.files:
+                img = request.files['img']
+                if img and (not PhotographerModel.allowed_image(img.filename)==False):
+                    data['img']=".".join([codeword, PhotographerModel.allowed_image(img.filename)])
+                    img.save("static\\uploads\\img\\"+data['img'])
+                else:
+                    return {"Error":"Filename is not allowed"}
+            photographer = PhotographerModel(codeword, **data)
+        try:
+            photographer.save_to_db()
+        except:
+            return {"message": "error occured in database"}, 500
         return photographer.json()
 
 class PhotographerList(Resource):
     def get(self):
-        return {'photographer':[photographer.json() for photographer in PhotographerModel.query.all()]}
-    #list(map(lambda x:x.json,ItemModel.query.all())
+        if request.args:
+            return {'photographers':[photographer.json() for photographer in PhotographerModel.query.paginate(
+                page=int(request.args.get('page')), per_page=int(request.args.get('perpage'))
+                ).items]}
+        else:
+            return {'photographers':[photographer.json() for photographer in PhotographerModel.query.all()]}
