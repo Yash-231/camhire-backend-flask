@@ -1,8 +1,8 @@
 from flask import request
-import os
 from flask_restful import Resource, reqparse
 from flask_jwt import  jwt_required
 from models.gallery import GalleryModel
+from storage import s3, S3_BUCKET_NAME
 
 class Gallery(Resource):
     parser = reqparse.RequestParser()
@@ -22,36 +22,33 @@ class Gallery(Resource):
             return {"heading":"Already exists"}
         else:
             data = Gallery.parser.parse_args()
-            if request.files:
-                if request.files.get('img'):
-                    img = request.files['img']
-                    if not GalleryModel.allowed_images(img.filename)==False:
-                        data['img']=".".join([heading, GalleryModel.allowed_images(img.filename)])
-                        img.save("static\\gallery\\img\\"+data['img'])
-                    else:
-                        return {"Error":"Filename is not allowed"}
-                if request.files.get('video'):
-                    video = request.files['video']
-                    if not GalleryModel.allowed_videos(video.filename)==False:
-                        data['video']=".".join([heading, GalleryModel.allowed_videos(video.filename)])
-                        video.save("static\\gallery\\video\\"+data['video'])
-                    else:
-                        return {"Error":"Filename is not allowed"}
+            if request.files.get('img') and request.files.get('video'):
+                img = request.files.get('img')
+                video = request.files.get('video')
+                if (not GalleryModel.allowed_images(img.filename)==False) and (not GalleryModel.allowed_videos(video.filename)==False):
+                    data['img']=".".join([f"gallery/{heading}", GalleryModel.allowed_images(img.filename)])
+                    data['video']=".".join([f"gallery/{heading}", GalleryModel.allowed_videos(video.filename)])
+                    s3.put_object(Body=video, Bucket=S3_BUCKET_NAME, Key=data['video'])
+                    s3.put_object(Body=img, Bucket=S3_BUCKET_NAME, Key=data['img'])
+                else:
+                    return {"Error":"Filename is not allowed"}
+            else:
+                return {"message":"Image and Video are required!"}
             gallery = GalleryModel(heading, **data)
             try:
                 gallery.save_to_db()
             except:
+                s3.delete_object(Bucket=S3_BUCKET_NAME, Key=data['video'])
+                s3.delete_object(Bucket=S3_BUCKET_NAME, Key=data['img'])
                 return {"message":"error occured in database"}, 500
             return gallery.json()
 
-    @jwt_required()
+    #@jwt_required()
     def delete(self, heading):
         gallery = GalleryModel.find_by_heading(heading)
         if gallery:
-            if gallery.img != 'default.jpg':
-                os.remove("static\\gallery\\img\\"+gallery.img)
-            if gallery.video != 'default.mp4':
-                os.remove("static\\gallery\\video\\"+gallery.video)
+            s3.delete_object(Bucket=S3_BUCKET_NAME, Key=gallery.img)
+            s3.delete_object(Bucket=S3_BUCKET_NAME, Key=gallery.video)
             gallery.delete_from_db()
             return {'message':"Item Deleted"}
         return {"message":"heading does not exist"}, 404
@@ -60,50 +57,36 @@ class Gallery(Resource):
         gallery = GalleryModel.find_by_heading(heading)
         data = Gallery.parser.parse_args()
         if gallery:
-            if request.files:
-                if request.files.get('img'):
-                    img = request.files['img']
-                    if not GalleryModel.allowed_images(img.filename)==False:
-                        if gallery.img != 'default.jpg':
-                            os.remove("static\\gallery\\img\\"+gallery.img)
-                        gallery.img=".".join([heading, GalleryModel.allowed_images(img.filename)])
-                        img.save("static\\gallery\\img\\"+gallery.img)
-                    else:
-                        return {"Error":"Filename is not allowed"}
-                if request.files.get('video'):
-                    video = request.files['video']
-                    if not GalleryModel.allowed_videos(video.filename)==False:
-                        if gallery.video != 'default.mp4':
-                            os.remove("static\\gallery\\video\\"+gallery.video)
-                        gallery.video=".".join([heading, GalleryModel.allowed_videos(video.filename)])
-                        video.save("static\\gallery\\video\\"+gallery.video)
-                    else:
-                        return {"Error":"Filename is not allowed"}
             gallery.theme  = data['theme']
             gallery.description = data['description']
             gallery.created_by = data['created_by']
+            img = request.files.get('img')
+            video = request.files.get('video')
+            if img:
+                if GalleryModel.allowed_images(img.filename)==False:
+                    return {"Error":"Filename is not allowed"}
+                else:
+                    temp_img = gallery.img
+                    gallery.img = ".".join([f"gallery/{heading}", GalleryModel.allowed_images(img.filename)])
+            if video:
+                if GalleryModel.allowed_videos(video.filename)==False:
+                    return {"Error":"Filename is not allowed"}
+                else:
+                    temp_video = gallery.video
+                    gallery.video = ".".join([f"gallery/{heading}", GalleryModel.allowed_videos(video.filename)])
+            try:
+                gallery.save_to_db()
+            except:
+                return {"message": "error occured in database"}, 500
+            if img:
+                s3.delete_object(Bucket=S3_BUCKET_NAME, Key=temp_img)
+                s3.put_object(Body=img, Bucket=S3_BUCKET_NAME, Key=gallery.img)
+            if video:
+                s3.delete_object(Bucket=S3_BUCKET_NAME, Key=temp_video)
+                s3.put_object(Body=video, Bucket=S3_BUCKET_NAME, Key=gallery.video)
+            return gallery.json()
         else:
-            if request.files:
-                if request.files.get('img'):
-                    img = request.files['img']
-                    if not GalleryModel.allowed_images(img.filename)==False:
-                        data['img']=".".join([heading, GalleryModel.allowed_images(img.filename)])
-                        img.save("static\\gallery\\img\\"+data['img'])
-                    else:
-                        return {"Error":"Filename is not allowed"}
-                if request.files.get('video'):
-                    video = request.files['video']
-                    if not GalleryModel.allowed_videos(video.filename)==False:
-                        data['video']=".".join([heading, GalleryModel.allowed_videos(video.filename)])
-                        video.save("static\\gallery\\video\\"+data['video'])
-                    else:
-                        return {"Error":"Filename is not allowed"}
-            gallery = GalleryModel(heading, **data)
-        try:
-            gallery.save_to_db()
-        except:
-            return {"message": "error occured in database"}, 500
-        return gallery.json()
+            return Gallery.post(self, heading)
 
 class GalleryList(Resource):
     def get(self):

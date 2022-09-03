@@ -9,7 +9,7 @@ class GalleryModel(db.Model):
     description = db.Column(db.String)
     created_by = db.Column(db.String)
     
-    def __init__(self, heading, theme, description, created_by, img="default.jpg", video="default.mp4"):
+    def __init__(self, heading, theme, description, created_by, img, video):
         self.heading = heading
         self.theme = theme
         self.img = img
