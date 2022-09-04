@@ -2,18 +2,18 @@ from db import db
 
 class GalleryModel(db.Model):
     __tablename__ = "gallery"
-    heading = db.Column(db.String, primary_key = True)
-    theme = db.Column(db.String)
+    theme = db.Column(db.String, primary_key = True)
     img = db.Column(db.String)
     video = db.Column(db.String)
+    heading = db.Column(db.String)
     description = db.Column(db.String)
     created_by = db.Column(db.String)
     
-    def __init__(self, heading, theme, description, created_by, img, video):
-        self.heading = heading
+    def __init__(self, theme, img, video, heading, description, created_by):
         self.theme = theme
         self.img = img
         self.video = video
+        self.heading = heading
         self.description = description
         self.created_by = created_by
 
@@ -36,11 +36,14 @@ class GalleryModel(db.Model):
             return False
         
     def json(self):
-        return {"heading":self.heading, "theme":self.theme, "img":self.img, "video":self.video, "description":self.description, "created_by":self.created_by}
+        return {"theme":self.theme, "img":self.img}
         
+    def json_data(self):
+        return {"theme":self.theme, "video":self.video, "heading":self.heading, "description":self.description, "created_by":self.created_by}
+
     @classmethod
-    def find_by_heading(cls, heading):
-        return cls.query.filter_by(heading=heading).first()
+    def find_by_theme(cls, theme):
+        return cls.query.filter_by(theme=theme).first()
 
     def save_to_db(self):
         db.session.add(self)

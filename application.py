@@ -40,7 +40,7 @@ api.add_resource(PhotographerList,'/photographers')
 api.add_resource(PhotographerImages,'/photographer/<codeword>/images')
 api.add_resource(PhotographerVideos,'/photographer/<codeword>/videos')
 api.add_resource(UserRegister,'/register')
-api.add_resource(Gallery, '/gallery/<heading>')
+api.add_resource(Gallery, '/gallery/<theme>')
 api.add_resource(GalleryList, '/gallery')
 
 @application.route("/")
@@ -75,6 +75,5 @@ def index():
 #     except FileNotFoundError:
 #         return abort(404)
 
-# port = os.environ.get("PORT",8000)
 if __name__=="__main__":
     application.run(debug=True, host="0.0.0.0", port='8000')
