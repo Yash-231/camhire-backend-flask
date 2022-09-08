@@ -26,9 +26,9 @@ jwt = JWT(application, authenticate, identity)
 
 items = []
 
-# @application.before_first_request
-# def create_table():
-#     db.create_all()
+@application.before_first_request
+def create_table():
+    db.create_all()
 
 db.init_app(application)
 api.add_resource(Item,'/item/<string:name>')
