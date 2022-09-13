@@ -66,6 +66,8 @@ class PhotographerModel(db.Model):
         for page in response:
             files_to_delete = []
             files = page.get("Contents")
+            if files==None:
+                break
             for file in files:
                 files_to_delete.append({"Key": file["Key"]})
             s3.delete_objects(Bucket=S3_BUCKET_NAME, Delete={"Objects": files_to_delete})
